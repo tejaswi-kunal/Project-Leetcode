@@ -1,7 +1,6 @@
 const validateProblem=require('../utils/validateProblem');
 const Problem=require('../model/Problems');
 const User = require('../model/User');
-const { options } = require('../router/submission');
 
 const createProblem=async(req,res)=>{
     try{
@@ -46,7 +45,13 @@ const updateProblem=async(req,res)=>{
         await validateProblem(req.body);
 
         // now update the problem
-        const updatedProblem=await Problem.findByIdAndUpdate(id,{...req.body},{runValidators:true,new:true});
+        // someone can send the ProblemCreater feild to update it 
+        const {problemCreator, ...rest} = req.body;
+        const updatedProblem = await Problem.findByIdAndUpdate(
+            id,
+            {...rest},
+            {runValidators:true, new:true}
+        );
 
         res.status(200).send(updatedProblem);
     }catch(err)
@@ -95,7 +100,23 @@ const getProblem=async(req,res)=>{
             return res.status(400).send("Invalid ID");
         }
 
-        res.status(200).send(DSAproblem);
+        const user = await User.findById(req.result)
+            .select("problemsSolved");
+
+        if (!user) {
+            return res.status(404).send("User Not Found!");
+        }
+
+        const solvedSet = new Set(
+            user.problemsSolved.map((problemId) => problemId.toString())
+        );
+
+        const updatedDSAproblem = {
+            ...DSAproblem.toObject(),
+            isSolved: solvedSet.has(id)
+        };
+
+        res.status(200).send(updatedDSAproblem);
 
     }catch(err){
         res.status(400).send("Error : "+err.message);
@@ -109,8 +130,23 @@ const getAllProblems=async(req,res)=>{
     // objects to skip
     const skip = (page-1) * limit;
 
+    const user=await User.findById(req.result).select("problemsSolved");
+
+    if (!user)
+    {
+        return res.status(404).send("User Not Found!");
+    }
+
+    const solvedSet=new Set(user.problemsSolved.map((id)=>id.toString()));
+
     const problemSet=await Problem.find({}).skip(skip).limit(limit).select("_id title difficulty totalSubmissions acceptedSubmissions");
-    return res.status(200).send(problemSet);
+
+    const updatedProblemSet=problemSet.map((problem)=>({
+        ...problem.toObject(),
+        isSolved:solvedSet.has(problem._id.toString())
+    }));
+
+    return res.status(200).send(updatedProblemSet);
 
     }catch(err){
         res.status(400).send("Error : "+err.message);
@@ -240,6 +276,14 @@ const filterProblems = async (req, res) => {
             sortOptions.createdAt = -1;
         }
 
+        const user = await User.findById(req.result).select("problemsSolved");
+
+        if(!user) {
+            return res.status(404).send("User Not Found!");
+        }
+
+        const solvedSet = new Set(user.problemsSolved.map((id) => id.toString()));
+
         // ─── Query ───────────────────────────────────────────────
         // parallel execution — data + total count at the same time
         const [problems, total] = await Promise.all([
@@ -249,16 +293,21 @@ const filterProblems = async (req, res) => {
                 .limit(limitNum)
                 // only send fields needed for a problem list
                 // no need to send visibleTestCases, hiddenTestCases etc in list view
-                .select('title difficulty tags companies likes dislikes totalSubmissions acceptedSubmissions createdAt'),
+                .select('_id title difficulty tags companies likes dislikes totalSubmissions acceptedSubmissions createdAt'),
             Problem.countDocuments(filter)
         ]);
+
+        const updatedProblems = problems.map((problem) => ({
+            ...problem.toObject(),
+            isSolved: solvedSet.has(problem._id.toString())
+        }));
 
         res.status(200).json({
             total,
             page: pageNum,
             totalPages: Math.ceil(total / limitNum),
             count: problems.length,
-            problems
+            problems:updatedProblems
         });
 
     } catch(err) {
@@ -276,12 +325,16 @@ const getAllProblemsSolvedByUser=async(req,res)=>{
         // first we have to access the user's populated data 
         const user=await User.findById(req.result).populate({
             path:"problemsSolved",
-            select:"_id title difficulty",
+            select:"_id title difficulty totalSubmissions acceptedSubmissions",
             options:{
                 skip:skip,
                 limit:limit
             }
         });
+
+        if (!user) {
+            return res.status(404).send("User Not Found!");
+        }
 
         res.status(200).send(user.problemsSolved);
     }catch(err){
@@ -293,11 +346,92 @@ const getAllProblemsSolvedByUser=async(req,res)=>{
 const getNumberOfProblemsSolvedByUser=async(req,res)=>{
     try{
         const user=await User.findById(req.result);
-        res.status(200).send(user.problemsSolved.length);
+
+        if(!user) 
+        {
+            return res.status(404).send("User Not Found!");
+        }
+        
+        res.status(200).send({count:user.problemsSolved.length});
+    }catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+}
+
+const saveProblem=async(req,res)=>{
+    try{
+        const id=req.params.id;
+        if(!id)
+        {
+            return res.status(404).send("Please Give A Valid Problem Id!");
+        }
+
+        const DSAproblem=await Problem.findById(id);
+        if(!DSAproblem)
+        {
+            return res.status(404).send("Please Give A Valid Problem Id!");
+        }
+
+        const user=await User.findById(req.result);
+
+        if (!user) 
+        {
+            return res.status(404).send("User Not Found!");
+        }
+
+        if(user.savedProblems.includes(id))
+        {
+            return res.status(409).send("Problem Already Saved!");
+        }
+
+        user.savedProblems.push(id);
+        await user.save();
+
+        res.status(201).send("Problem Saved Successfully!");
+    }catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+}
+
+const getSavedProblems=async(req,res)=>{
+    try{
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        // objects to skip
+        const skip = (page-1) * limit;
+
+        const user = await User.findById(req.result)
+        .select("savedProblems problemsSolved")
+        .populate({
+            path: "savedProblems",
+            select: "_id title difficulty totalSubmissions acceptedSubmissions",
+            options: { skip, limit }
+        })
+        .populate({
+            path: "problemsSolved",
+            select: "_id"   // only need _id for the solvedSet check
+        });
+
+        if (!user)
+        {
+            return res.status(404).send("User Not Found!");
+        }
+
+        const problemSet=user.savedProblems;
+
+        const solvedSet=new Set(user.problemsSolved.map((id)=>id.toString()));
+
+        const updatedProblemSet=problemSet.map((problem)=>({
+            ...problem.toObject(),
+            isSolved:solvedSet.has(problem._id.toString())
+        }));
+
+    return res.status(200).send(updatedProblemSet);
+
     }catch(err){
         res.status(400).send("Error : "+err.message);
     }
 }
 
 
-module.exports={createProblem,updateProblem,deleteProblem,getProblem,getAllProblems,filterProblems,getAllProblemsSolvedByUser,getNumberOfProblemsSolvedByUser};
+module.exports={createProblem,updateProblem,deleteProblem,getProblem,getAllProblems,filterProblems,getAllProblemsSolvedByUser,getNumberOfProblemsSolvedByUser,saveProblem,getSavedProblems};

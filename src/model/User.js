@@ -55,16 +55,19 @@ const userSchema=Schema({
             ref:'Problem'
         }]
     },
-    totalSolved:{
-        type:Number,
-        default:0
-    },
     submissionsCount:{
         type:Number,
         default:0
     },
+    acceptedSubmissions:{
+        type:Number,
+        default:0
+    },
     savedProblems:{
-        type:[String]
+        type:[{
+            type:Schema.Types.ObjectId,
+            ref:'Problem'
+        }]
     },
     rating:{
         type:Number,
