@@ -15,6 +15,7 @@ const userRegister=async (req,res)=>{
         // saving user in db
         const people=await User.create({
             ...req.body,
+            lastLogin:Date.now(),
             role:'user'
         });
 
@@ -54,6 +55,10 @@ const login=async (req,res)=>{
         {
             throw new Error('Wrong Credentials!');
         }
+
+        // updating the login date
+        people.lastLogin=Date.now();
+        await people.save();
 
         // creating jwt token
         const token=jwt.sign({id:people._id,emailId:people.emailId,role:people.role},process.env.SECRET_KEY,{expiresIn:'60m'});
@@ -96,6 +101,7 @@ const adminRegister=async (req,res)=>{
         // saving admin in db
         const people=await User.create({
             ...req.body,
+            lastLogin:Date.now(),
             role:'admin'
         });
 
@@ -132,9 +138,19 @@ const getAccount=async (req,res)=>{
 
 }
 
+// Delete Account
+const deleteAccount=async(req,res)=>{
+    try{
+        const user=await User.findByIdAndDelete(req.result);
+        res.status(200).send("Account Deleted Successfully!");
+        
+    }catch(err){
+        res.status(500).send("Error "+err.message);
+    }
+}
 // Update Profile
 // Change Password
-// Delete Account
+
 // Get Public Profile
 
-module.exports={userRegister,login,logout,adminRegister,getAccount};
+module.exports={userRegister,login,logout,adminRegister,getAccount,deleteAccount};

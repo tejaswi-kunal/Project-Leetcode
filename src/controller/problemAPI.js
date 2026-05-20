@@ -1,6 +1,7 @@
 const validateProblem=require('../utils/validateProblem');
 const Problem=require('../model/Problems');
 const User = require('../model/User');
+const Submission=require('../model/Submission');
 
 const createProblem=async(req,res)=>{
     try{
@@ -433,5 +434,41 @@ const getSavedProblems=async(req,res)=>{
     }
 }
 
+const getSubmissions=async(req,res)=>{
+    try{
+        const {id}=req.params;
 
-module.exports={createProblem,updateProblem,deleteProblem,getProblem,getAllProblems,filterProblems,getAllProblemsSolvedByUser,getNumberOfProblemsSolvedByUser,saveProblem,getSavedProblems};
+        // first we have to verify the problem id
+        if(!id)
+        {
+            return res.status(404).send("No Valid Problem ID Recived Please Try Again!");
+        }
+        
+        const DSAproblem=await Problem.findById(id);
+
+        if(!DSAproblem)
+        {
+            return res.status(404).send("Invalid Id!");
+        }
+
+        const userID=req.result;
+        if(!userID)
+        {
+            return res.status(404).send("No Valid User Id Recieved Please Try Again!");
+        }
+
+        const user=await User.findById(req.result);
+        if(!user)
+        {
+            return res.status(404).send("Invalid User Id!");
+        }
+
+        const problemSubmissions=await Submission.find({user:userID,problem:id}).sort({ createdAt: -1 });;
+
+        res.status(200).send(problemSubmissions);
+    }catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+}
+
+module.exports={createProblem,updateProblem,deleteProblem,getProblem,getAllProblems,filterProblems,getAllProblemsSolvedByUser,getNumberOfProblemsSolvedByUser,saveProblem,getSavedProblems,getSubmissions};

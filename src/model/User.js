@@ -1,5 +1,4 @@
 const mongoose=require('mongoose');
-const Problem = require('./Problems');
 const {Schema}=mongoose;
 
 const userSchema=Schema({
@@ -104,6 +103,13 @@ const userSchema=Schema({
     }
 },{
     timestamps:true
+});
+
+userSchema.post('findOneAndDelete', async function (userInfo) {
+    if (userInfo) 
+    {
+      await mongoose.model('Submission').deleteMany({ user: userInfo._id });
+    }
 });
 
 const User=mongoose.model('User',userSchema);
