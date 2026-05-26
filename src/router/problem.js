@@ -2,7 +2,7 @@ const express=require('express');
 const {createProblem,updateProblem,deleteProblem,getProblem,
     getAllProblems,filterProblems,getAllProblemsSolvedByUser,
     getNumberOfProblemsSolvedByUser,saveProblem,getSavedProblems,
-    getSubmissions}
+    getSubmissions,likeProblem,dislikeProblem,userProblemReaction}
             = require('../controller/problemAPI');
    
 const adminMiddleware=require('../middleware/adminMiddleware');
@@ -21,7 +21,10 @@ ProblemRouter.get('/getAllProblemSolvedByUser',userMiddleware,getAllProblemsSolv
 ProblemRouter.get('/getNumberOfProblemsSolvedByUser',userMiddleware,getNumberOfProblemsSolvedByUser);
 ProblemRouter.post('/saveProblem/:id',userMiddleware,saveProblem);
 ProblemRouter.get('/getSavedProblems',userMiddleware,getSavedProblems);
-ProblemRouter.get('/getSubmissions/:id',userMiddleware,getSubmissions)
+ProblemRouter.get('/getSubmissions/:id',userMiddleware,getSubmissions);
+ProblemRouter.post('/like/:id',userMiddleware,likeProblem);
+ProblemRouter.post('/dislike/:id',userMiddleware,dislikeProblem);
+ProblemRouter.get('/reaction/:id',userMiddleware,userProblemReaction);
 
 module.exports=ProblemRouter;
 

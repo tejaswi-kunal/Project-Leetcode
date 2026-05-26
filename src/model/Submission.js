@@ -73,7 +73,12 @@ const submissionSchema=new Schema({
 });
 
 // compund index of (userid,problemid) for submissionSchema
-submissionSchema.index({user:1,problem:1});
+submissionSchema.index(
+    {
+        user:1,
+        problem:1
+    }
+);
 
 const Submission=mongoose.model('Submission',submissionSchema);
 

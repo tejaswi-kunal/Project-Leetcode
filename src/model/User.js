@@ -105,10 +105,56 @@ const userSchema=Schema({
 });
 
 userSchema.post('findOneAndDelete', async function (userInfo) {
-    if (userInfo) 
+    if (!userInfo)
     {
-      await mongoose.model('Submission').deleteMany({ user: userInfo._id });
+        return;
     }
+
+    const Reaction = mongoose.model('Reaction');
+    const Comment = mongoose.model('Comment');
+    const Problem = mongoose.model('Problem');
+
+    const reactions = await Reaction.find({
+        user: userInfo._id
+    });
+
+    for (const reaction of reactions)
+    {
+        if (reaction.type === 'like')
+        {
+            await Problem.findByIdAndUpdate(
+                reaction.problem,
+                {
+                    $inc: {
+                        likes: -1
+                    }
+                }
+            );
+        }
+        else
+        {
+            await Problem.findByIdAndUpdate(
+                reaction.problem,
+                {
+                    $inc: {
+                        dislikes: -1
+                    }
+                }
+            );
+        }
+    }
+
+    await Reaction.deleteMany({
+        user: userInfo._id
+    });
+
+    await Comment.deleteMany({
+        user: userInfo._id
+    });
+
+    await mongoose.model('Submission').deleteMany({
+        user: userInfo._id
+    });
 });
 
 const User=mongoose.model('User',userSchema);

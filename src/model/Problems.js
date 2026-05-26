@@ -134,6 +134,25 @@ const problemSchema=Schema({
     timestamps:true
 });
 
+problemSchema.post('findOneAndDelete', async function(problemInfo){
+    if(!problemInfo)
+    {
+        return;
+    }
+
+    await mongoose.model('Reaction').deleteMany({
+        problem:problemInfo._id
+    });
+
+    await mongoose.model('Comment').deleteMany({
+        problem:problemInfo._id
+    });
+
+    await mongoose.model('Submission').deleteMany({
+        problem:problemInfo._id
+    });
+});
+
 const Problem=mongoose.model('Problem',problemSchema);
 
 module.exports=Problem;

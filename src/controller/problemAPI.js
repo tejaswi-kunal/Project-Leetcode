@@ -2,6 +2,7 @@ const validateProblem=require('../utils/validateProblem');
 const Problem=require('../model/Problems');
 const User = require('../model/User');
 const Submission=require('../model/Submission');
+const Reaction = require('../model/Reaction');
 
 const createProblem=async(req,res)=>{
     try{
@@ -471,4 +472,192 @@ const getSubmissions=async(req,res)=>{
     }
 }
 
-module.exports={createProblem,updateProblem,deleteProblem,getProblem,getAllProblems,filterProblems,getAllProblemsSolvedByUser,getNumberOfProblemsSolvedByUser,saveProblem,getSavedProblems,getSubmissions};
+const likeProblem=async(req,res)=>
+{
+    try{
+        const problemID=req.params.id;
+        if(!problemID)
+        {
+            return res.status(404).send("No Valid Problem ID Recived Please Try Again!");
+        }
+        
+        const DSAproblem=await Problem.findById(problemID);
+
+        if(!DSAproblem)
+        {
+            return res.status(404).send("Invalid Id!");
+        }
+
+        const userID=req.result;
+        if(!userID)
+        {
+            return res.status(404).send("No Valid User Id Recieved Please Try Again!");
+        }
+
+        const user=await User.findById(userID);
+        if(!user)
+        {
+            return res.status(404).send("Invalid User Id!");
+        }
+
+        // first we have to check if the reaction already exist or not
+        const userReaction=await Reaction.findOne({user:userID,problem:problemID});
+
+        if(!userReaction)
+        {
+            // it means its a new reaction,so update likes of the problem and reaction of this user
+            await Reaction.create({user:userID,problem:problemID,type:'like'});
+            DSAproblem.likes+=1;
+        }
+
+        else 
+        {
+            // if reaction already exits 
+            if(userReaction.type==='dislike')
+            {
+                userReaction.type='like';
+                DSAproblem.dislikes = Math.max(0, DSAproblem.dislikes - 1);
+                DSAproblem.likes+=1;
+                await userReaction.save();
+            }
+
+            else
+            {
+                DSAproblem.likes = Math.max(0, DSAproblem.likes - 1);
+                await userReaction.deleteOne();
+            }
+        }
+
+        await DSAproblem.save();
+
+        return res.status(200).send({
+            likes:DSAproblem.likes,
+            dislikes:DSAproblem.dislikes
+        });
+
+    }catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+}
+
+const dislikeProblem=async(req,res)=>
+{
+    try{
+        const problemID=req.params.id;
+        if(!problemID)
+        {
+            return res.status(404).send("No Valid Problem ID Recived Please Try Again!");
+        }
+        
+        const DSAproblem=await Problem.findById(problemID);
+
+        if(!DSAproblem)
+        {
+            return res.status(404).send("Invalid Id!");
+        }
+
+        const userID=req.result;
+        if(!userID)
+        {
+            return res.status(404).send("No Valid User Id Recieved Please Try Again!");
+        }
+
+        const user=await User.findById(userID);
+        if(!user)
+        {
+            return res.status(404).send("Invalid User Id!");
+        }
+
+        // first we have to check if the reaction already exist or not
+        const userReaction=await Reaction.findOne({user:userID,problem:problemID});
+
+        if(!userReaction)
+        {
+            // it means its a new reaction,so update likes of the problem and reaction of this user
+            await Reaction.create({user:userID,problem:problemID,type:'dislike'});
+            DSAproblem.dislikes+=1;
+        }
+
+        else 
+        {
+            // if reaction already exits 
+            if(userReaction.type==='like')
+            {
+                userReaction.type='dislike';
+                DSAproblem.likes = Math.max(0, DSAproblem.likes - 1);
+                DSAproblem.dislikes+=1;
+                await userReaction.save();
+            }
+
+            else
+            {
+                DSAproblem.dislikes = Math.max(0, DSAproblem.dislikes - 1);
+                await userReaction.deleteOne();
+            }
+        }
+
+        await DSAproblem.save();
+
+        return res.status(200).send({
+            likes:DSAproblem.likes,
+            dislikes:DSAproblem.dislikes
+        });
+
+    }catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+}
+
+const userProblemReaction=async(req,res)=>{
+    try{
+        const problemID=req.params.id;
+        if(!problemID)
+        {
+            return res.status(404).send("No Valid Problem ID Recived Please Try Again!");
+        }
+        
+        const DSAproblem=await Problem.findById(problemID);
+
+        if(!DSAproblem)
+        {
+            return res.status(404).send("Invalid Id!");
+        }
+
+        const userID=req.result;
+        if(!userID)
+        {
+            return res.status(404).send("No Valid User Id Recieved Please Try Again!");
+        }
+
+        const user=await User.findById(userID);
+        if(!user)
+        {
+            return res.status(404).send("Invalid User Id!");
+        }
+
+        const userReaction=await Reaction.findOne({user:userID,problem:problemID});
+
+        if(!userReaction)
+        {
+            return res.status(200).send({
+                reaction:null
+            })
+        }
+
+        else
+        {
+            return res.status(200).send({
+                reaction:userReaction.type
+            })
+        }
+
+    }catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+}
+
+
+
+module.exports={createProblem,updateProblem,deleteProblem,getProblem,getAllProblems,
+    filterProblems,getAllProblemsSolvedByUser,getNumberOfProblemsSolvedByUser,saveProblem,getSavedProblems,
+    getSubmissions,likeProblem,dislikeProblem,userProblemReaction};

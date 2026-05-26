@@ -6,6 +6,7 @@ const authRouter=require('./router/auth');
 const redisClient=require('./config/redis');
 const ProblemRouter=require('./router/problem');
 const submissionRouter=require('./router/submission');
+const commentRouter=require('./router/comment');
 const cors = require('cors');
 
 
@@ -31,6 +32,9 @@ app.use('/problem',ProblemRouter);
 
 // submission
 app.use('/submission',submissionRouter);
+
+// comment
+app.use('/comment',commentRouter);
 
 
 // connection initialization
