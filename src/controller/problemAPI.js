@@ -48,7 +48,7 @@ const updateProblem=async(req,res)=>{
 
         // now update the problem
         // someone can send the ProblemCreater feild to update it 
-        const {problemCreator, ...rest} = req.body;
+        const {problemCreator,totalSubmissions,acceptedSubmissions,likes,dislikes, ...rest} = req.body;
         const updatedProblem = await Problem.findByIdAndUpdate(
             id,
             {...rest},

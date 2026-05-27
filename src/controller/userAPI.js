@@ -1,4 +1,4 @@
-const validateUser=require('../utils/validateUser');
+const {validateRegister,validateUpdateProfile}=require('../utils/validateUser');
 const bcrypt=require('bcrypt');
 const User=require('../model/User');
 const jwt=require('jsonwebtoken');
@@ -7,7 +7,7 @@ const redisClient = require('../config/redis');
 const userRegister=async (req,res)=>{
     try{
         // api level validation
-        validateUser(req.body);
+        validateRegister(req.body);
 
         // bycrption of password
         req.body.password=await bcrypt.hash(req.body.password,10);
@@ -111,7 +111,7 @@ const logout=async(req,res)=>{
 const adminRegister=async (req,res)=>{
     try{
         // api level validation
-        validateUser(req.body);
+        validateRegister(req.body);
 
         // bycrption of password
         req.body.password=await bcrypt.hash(req.body.password,10);
@@ -167,8 +167,42 @@ const deleteAccount=async(req,res)=>{
     }
 }
 // Update Profile
+const updateProfile=async(req,res)=>{
+    try{
+        const userID=req.result;
+
+        if(!userID)
+        {
+            return res.status(404).send("No Valid User Id Recieved Please Try Again!");
+        }
+
+        const user=await User.findById(userID);
+
+        if(!user)
+        {
+            return res.status(404).send("Invalid User ID");
+        }
+
+        // api level validation before user update
+        validateUpdateProfile(req.body);
+
+        const {userName,emailId,password,role,problemsSolved,submissionsCount,acceptedSubmissions,
+            easySolved,mediumSolved,hardSolved,totalPoints,savedProblems,rating,lastLogin,passwordChangedAt,
+            ...rest}=req.body;
+
+        const updatedProfile=await User.findByIdAndUpdate(userID,{...rest},{runValidators:true, new:true});
+
+        res.status(200).json({
+            updatedProfile:updatedProfile,
+            message:"User Updated Successfully!"
+        });
+    }catch(err){
+        res.status(400).send("Error : "+err.message);
+    }
+}
+
 // Change Password
 
 // Get Public Profile
 
-module.exports={userRegister,login,logout,adminRegister,getAccount,deleteAccount};
+module.exports={userRegister,login,logout,adminRegister,getAccount,deleteAccount,updateProfile};

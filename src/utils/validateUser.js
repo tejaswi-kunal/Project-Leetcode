@@ -1,6 +1,6 @@
 const validator=require('validator');
 
-function validateUser(data)
+function validateRegister(data)
 {
     if(!data || typeof data !== 'object')
     {
@@ -104,4 +104,65 @@ function validateUser(data)
 
 }
 
-module.exports=validateUser;
+const validateUpdateProfile = (data) => {
+
+    const allowedUpdates = [
+        "firstName",
+        "lastName",
+        "age",
+        "gender",
+        "profilePicture",
+        "bio",
+        "github",
+        "linkedin",
+        "college"
+    ];
+
+    const receivedUpdates = Object.keys(data);
+
+    const isValidUpdate = receivedUpdates.every((field) =>
+        allowedUpdates.includes(field)
+    );
+
+    if (!isValidUpdate) {
+        throw new Error("Invalid Updates Received!");
+    }
+
+    if (data.firstName !== undefined) {
+
+        if (data.firstName.trim().length < 3) {
+            throw new Error("First Name Should Contain Minimum 3 Characters!");
+        }
+
+        if (data.firstName.trim().length > 50) {
+            throw new Error("First Name Should Be Less Than 50 Characters!");
+        }
+    }
+
+    if (data.lastName !== undefined) {
+
+        if (data.lastName.trim().length < 3) {
+            throw new Error("Last Name Should Contain Minimum 3 Characters!");
+        }
+
+        if (data.lastName.trim().length > 50) {
+            throw new Error("Last Name Should Be Less Than 50 Characters!");
+        }
+    }
+
+    if (data.bio !== undefined) {
+
+        if (data.bio.trim().length > 300) {
+            throw new Error("Bio Cannot Exceed 300 Characters!");
+        }
+    }
+
+    if (data.age !== undefined) {
+
+        if (data.age < 5) {
+            throw new Error("Invalid Age!");
+        }
+    }
+};
+
+module.exports={validateRegister,validateUpdateProfile};

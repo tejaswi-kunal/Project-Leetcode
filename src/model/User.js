@@ -5,12 +5,14 @@ const userSchema=Schema({
     firstName:{
         type:String,
         minlength:3,
-        maxlength:50
+        maxlength:50,
+        trim:true
     },
     lastName:{
         type:String,
         minlength:3,
-        maxlength:50
+        maxlength:50,
+        trim:true
     },
     userName:{
         type:String,
@@ -61,6 +63,23 @@ const userSchema=Schema({
         type:Number,
         default:0
     },
+    easySolved:{
+        type:Number,
+        default:0
+    },
+    mediumSolved:{
+        type:Number,
+        default:0
+    },
+    hardSolved:{
+        type:Number,
+        default:0
+    },
+    totalPoints:{
+        type:Number,
+        default:0,
+        index:true
+    },
     savedProblems:{
         type:[{
             type:Schema.Types.ObjectId,
@@ -76,26 +95,26 @@ const userSchema=Schema({
     },
     bio:{
         type:String,
-        maxlength:300
+        maxlength:300,
+        trim:true
     },
     github:{
         type:String,
-        maxlength:150
+        maxlength:150,
+        trim:true
     },
     linkedin:{
         type:String,
-        maxlength:150
+        maxlength:150,
+        trim:true
     },
     college:{
         type:String,
-        maxlength:100
+        maxlength:100,
+        trim:true
     },
     lastLogin:{
         type:Date
-    },
-    isVerified:{
-        type:Boolean,
-        default:false
     },
     passwordChangedAt:{
         type:Date
